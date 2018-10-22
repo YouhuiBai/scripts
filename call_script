@@ -1,0 +1,42 @@
+#!/usr/bin/python3
+import os
+import sys
+import time
+import socket
+import argparse
+import threading
+
+def parseArgs():
+	parser = argparse.ArgumentParser(
+		formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        	description='measure the resource usage')
+	parser.add_argument('--command', type = str, default = 'ls',
+							     help = "command which will be executed by remote machine")
+	parser.add_argument('--hosts', type = int, nargs = '+', default = [],
+							     help = 'assign machine, choice from [1-18], example: --servers $(seq 1 3)')
+	parser.add_argument('--multithread', action = 'store_true', help = 'execute command with multi thread')
+	parser.add_argument('--terminal', action = 'store_true', help = 'execute with terminal')
+	return parser.parse_args()
+
+if __name__ == '__main__':
+	parsedArgs = parseArgs()
+	if not parsedArgs.multithread:
+		for host in parsedArgs.hosts:
+			rmcmd = parsedArgs.command
+			rmcmd = "'" + rmcmd + "'"
+			term = '-t' if parsedArgs.terminal else ''
+			cmd = "ssh %s gpu%d %s"%(term, host, rmcmd)
+			print(cmd)
+			os.system(cmd)
+	else:
+		threads = list()
+		for host in parsedArgs.hosts:
+			rmcmd = parsedArgs.command
+			rmcmd = "'" + rmcmd + "'"
+			cmd = "ssh -t gpu%d %s 2>&1 | tee ./sshMultiThreadOutput/sshRunOutput_gpu%d"%(host, rmcmd, host)
+			t = threading.Thread(target = os.system, args = (cmd, ))
+			t.setDaemon(True)
+			threads.append(t)
+			t.start()
+		for t in threads:
+			t.join()

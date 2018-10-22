@@ -1,0 +1,8 @@
+#!/bin/bash
+for file in $@ ; do
+	for i in $(seq 1 1 18) ; do
+		echo $PWD/$(dirname $file) ;
+		scp -r $PWD/$file gpu$i:$PWD/$(dirname $file)  & 
+	done 
+    wait
+done
